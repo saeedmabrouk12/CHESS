@@ -1,0 +1,8 @@
+# depslib dependency file v1.0
+1611926740 source:s:\c\new folder\main\array2\main.c
+	<stdio.h>
+	<stdlib.h>
+	<stdbool.h>
+	<ctype.h>
+	<conio.h>
+
