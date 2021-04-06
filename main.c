@@ -4,7 +4,18 @@
 #include <ctype.h>
 #include<conio.h>
 #define length 8
+//save all moves to undo backward blay and return kill if found and for redo play the game  again
+struct allmoves {
+    int a; int b; int c ; int d;
+    bool ifkill;
+    bool ifpromote;
+    bool ifhousing;
+};
+struct allmoves movements[120];
+//who play tell who should play if even black if odd white it increase every play
 int whoplay=0;
+// to make sure no one moved to make a good housing
+bool housing[2][3]={true,true,true,true,true,true};
 char chessboard[length][length],killed[30];
 char *numofkilled=killed;
 void fullchess();
@@ -13,6 +24,8 @@ void checkmove (int a,int b,int c,int d);
 void smallmove (int a,int b,int c,int d);
 void bigmove (int a,int b,int c,int d);
 bool isempty (int c, int d);
+void checkhousing (int a,int b,int c,int d);
+void promotion (int c , int d);
 bool checkwhitebowns (int a,int b,int c,int d);
 bool checkblackbowns (int a,int b,int c,int d);
 bool checkrooks (int a,int b,int c,int d);
@@ -20,6 +33,7 @@ bool checkknights (int a,int b,int c,int d);
 bool checkbishops (int a,int b,int c,int d);
 bool checkqueen (int a,int b,int c,int d);
 bool checkking (int a,int b,int c,int d);
+bool checksafetywhiteking (int a,int b);
 int main(void){
     fullchess();
     printchessboard();
@@ -66,10 +80,51 @@ void printchessboard (){
     scanf(" %c",&choise);
     switch(choise){
         case 'u':
-            choise='u';
+            if (whoplay==0) {
+                printf("hnhzr.. ?");
+                while (getchar()!='\n');
+                while (getchar()!='\n');
+                printchessboard();}
+            int a=movements[whoplay-1].a;
+            int b=movements[whoplay-1].b;
+            int c=movements[whoplay-1].c;
+            int d=movements[whoplay-1].d;
+            chessboard[a][b]=chessboard[c][d];
+            if (movements[whoplay-1].ifpromote){
+                chessboard[a][b]='p';
+            }
+            else if (movements[whoplay-1].ifhousing) {
+                if (a==0){
+                    if (d==1){
+                        chessboard[0][0]='r';
+                        clearcell(0,2);
+                    }
+                    else{
+                        chessboard[0][7]='r';
+                        clearcell(0,4);
+                    }
+                }
+                else {
+                    if (d==1){
+                        chessboard[7][0]='R';
+                        clearcell(7,2);
+                    }
+                    else{
+                        chessboard[7][7]='R';
+                        clearcell(7,4);
+                    }
+                }
+            }
+            clearcell(c,d);
+            if (movements[whoplay-1].ifkill) {
+                *numofkilled--;
+                chessboard[c][d]=*numofkilled;
+            }
+            whoplay--;
+            printchessboard();
             break;
         case 'r':
-            choise='r';
+            checkmove(movements[whoplay].a,movements[whoplay].b,movements[whoplay].c,movements[whoplay].d);
             break;
         case 'n':{
             char x1,x2;
@@ -85,14 +140,17 @@ void printchessboard (){
             printf("NOT Valid. You Have To Chose u , r or n");
                     while (getchar()!='\n');
                     while (getchar()!='\n');
-                    printchessboard();}}
+                    printchessboard();}
+        }
     return;
 }
 void checkmove (int a,int b,int c,int d){
-    a=abs(8-a);
-    b=b-97;
-    c=abs(8-c);
-    d=d-97;
+    if (b>30){
+        a=abs(8-a);
+        b=b-97;
+        c=abs(8-c);
+        d=d-97;
+    }
     //cheak who play white or black
     if (whoplay%2==0&&chessboard[a][b]>65&&chessboard[a][b]<83){
             printf("NOT Valid. White Should Play");
@@ -123,7 +181,6 @@ void checkmove (int a,int b,int c,int d){
             if (checkwhitebowns(a,b,c,d)){
                 if (isempty(c,d))smallmove(a,b,c,d);
                 else bigmove(a,b,c,d);
-                whoplay++;
                 printchessboard();
             }
             else {
@@ -137,7 +194,6 @@ void checkmove (int a,int b,int c,int d){
             if (checkblackbowns(a,b,c,d)){
                 if (isempty(c,d))smallmove(a,b,c,d);
                 else bigmove(a,b,c,d);
-                whoplay++;
                     printchessboard();
             }
             else {
@@ -151,7 +207,6 @@ void checkmove (int a,int b,int c,int d){
                if (checkrooks(a,b,c,d)){
                 if (isempty(c,d))smallmove(a,b,c,d);
                 else bigmove(a,b,c,d);
-                whoplay++;
                 printchessboard();
             }
             else {
@@ -165,7 +220,6 @@ void checkmove (int a,int b,int c,int d){
                if (checkknights(a,b,c,d)){
                 if (isempty(c,d))smallmove(a,b,c,d);
                 else bigmove(a,b,c,d);
-                whoplay++;
                 printchessboard();
             }
             else {
@@ -179,7 +233,6 @@ void checkmove (int a,int b,int c,int d){
                if (checkbishops(a,b,c,d)){
                 if (isempty(c,d))smallmove(a,b,c,d);
                 else bigmove(a,b,c,d);
-                whoplay++;
                 printchessboard();
             }
             else {
@@ -193,7 +246,6 @@ void checkmove (int a,int b,int c,int d){
                if (checkqueen(a,b,c,d)){
                 if (isempty(c,d))smallmove(a,b,c,d);
                 else bigmove(a,b,c,d);
-                whoplay++;
                 printchessboard();
             }
             else {
@@ -204,10 +256,9 @@ void checkmove (int a,int b,int c,int d){
                 }
             break;
         case 'K': case 'k':
-               if (checkking(a,b,c,d)){
+            if (checkking(a,b,c,d)){
                 if (isempty(c,d))smallmove(a,b,c,d);
                 else bigmove(a,b,c,d);
-                whoplay++;
                 printchessboard();
             }
             else {
@@ -221,34 +272,67 @@ void checkmove (int a,int b,int c,int d){
     return;
 }
 void smallmove (int a,int b,int c,int d){
+    if (chessboard[a][b]=='p'&&c==7) movements[whoplay].ifpromote=true;
+    else if  (chessboard[a][b]=='P'&&c==0) movements[whoplay].ifpromote=true;
+    else movements[whoplay].ifpromote=false;
+    if ((chessboard[a][b]=='k'||chessboard[a][b]=='K')&&abs(d-b)==2) movements[whoplay].ifhousing=true;
+    else movements[whoplay].ifhousing=false;
+    movements[whoplay].ifkill=false;
+    movements[whoplay].a=a;
+    movements[whoplay].b=b;
+    movements[whoplay].c=c;
+    movements[whoplay].d=d;
+    whoplay++;
     chessboard[c][d]=chessboard[a][b];
-     if ((a-b)%2==0) chessboard[a][b]='.';
-    else chessboard[a][b]='-';
+     clearcell(a,b);
+    promotion (c,d);
+    checkhousing(a,b,c,d);
 }
 void bigmove (int a,int b,int c,int d){
-    if (chessboard[c][d]=='k'||chessboard[c][d]=='K') {
-           system("cls");
-           printf("END GAME");
-           printf("play again y or n ?");
-           char what;
-           scanf(" %c",&what);
-           if (what=='y') {
-               fullchess();
-                printchessboard();
-           }
-           else if (what=='n') exit(0);
-           else printf("NOT Valid. You Have To Chose y or n");
-    }
+     if (chessboard[a][b]=='p'&&c==7) movements[whoplay].ifpromote=true;
+    else if  (chessboard[a][b]=='P'&&c==0) movements[whoplay].ifpromote=true;
+    else movements[whoplay].ifpromote=false;
+    movements[whoplay].ifkill=true;
+    movements[whoplay].a=a;
+    movements[whoplay].b=b;
+    movements[whoplay].c=c;
+    movements[whoplay].d=d;
     *numofkilled=chessboard[c][d];
     numofkilled++;
     chessboard[c][d]=chessboard[a][b];
-    if ((a-b)%2==0) chessboard[a][b]='.';
-        else chessboard[a][b]='-';
+    clearcell(a,b);
+    checkhousing(a,b,c,d);
+    whoplay++;
 }
 bool isempty (int c, int d){
     if (chessboard[c][d]=='-'||chessboard[c][d]=='.') return true;
     return false;
 }
+void checkhousing (int a,int b,int c,int d){
+    if (chessboard[c][d]=='r'&&b==0) housing[0][0]=true;
+    else if (chessboard[c][d]=='k') housing[0][1]=true;
+    else if (chessboard[c][d]=='r'&&b==7) housing[0][2]=true;
+    else if (chessboard[c][d]=='R'&&b==0) housing[1][0]=true;
+    else if (chessboard[c][d]=='K') housing[1][1]=true;
+    else if (chessboard[c][d]=='R'&&b==7) housing[1][2]=true;
+}
+void promotion (int c , int d){
+    if (chessboard[c][d]=='p'&&c==7){
+        system("cls");
+        char t;
+        printf("PROMOTE TO ?  choose   r   b   n   or  q ");
+        do {scanf(" %c",&t);}
+        while (!(t=='r'||t=='b'||t=='n'||t=='q'));
+        chessboard[c][d]=t;
+    }
+    else if  (chessboard[c][d]=='P'&&c==0){
+        system("cls");
+        char t;
+        printf("PROMOTE TO ?  choose   R   B   N   or  Q ");
+        do {scanf(" %c",&t);}
+        while (!(t=='R'||t=='B'||t=='N'||t=='Q'));
+        chessboard[c][d]=t;
+    }}
 bool checkwhitebowns (int a,int b,int c,int d){
     if (c-a==2){
         if (d==b){
@@ -294,6 +378,7 @@ bool checkblackbowns (int a,int b,int c,int d){
     else return false;
 }
 bool checkrooks (int a,int b,int c,int d){
+
     if (a==c&&d!=b){
     for (int i=d>b?b+1:b-1;i!=d;d>b?i++:i--){
         if (!(chessboard[a][i]=='.'||chessboard[a][i]=='-')) return false;
@@ -327,8 +412,36 @@ bool checkqueen (int a,int b,int c,int d){
     else return false;
 }
 bool checkking (int a,int b,int c,int d){
+    int index=1?a==7:0;
     if (abs(a-c)==1&&abs(d-b)==1)  return true;
-    if (a==c&&abs(d-b)==1) return true;
-    if (abs(a-c)==1&&d==b)  return true;
-    else return false;
+    else if (a==c&&abs(d-b)==1) return true;
+    else if (abs(a-c)==1&&d==b)  return true;
+    else if (d-b==2&&a==c&&housing[index][1]&&housing[index][2]) {
+        if (a==0) {
+            chessboard[a][4]='r';
+            clearcell(a,7);
+        }
+        else {
+            chessboard[a][4]='R';
+            clearcell(a,7);
+        }
+        return true;
+    }
+    else if (b-d==2&&a==c&&housing[index][1]&&housing[index][0]){
+        if (a==0) {
+            chessboard[a][2]='r';
+            clearcell(a,0);
+        }
+        else {
+            chessboard[a][2]='R';
+            clearcell(a,0);
+        }
+        return true;
+    }
+
+    return false;
+}
+void clearcell (int a,int b){
+if ((a-b)%2==0) chessboard[a][b]='.';
+    else chessboard[a][b]='-';
 }
